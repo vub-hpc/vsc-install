@@ -169,7 +169,7 @@ URL_GHUGENT_HPCUGENT = 'https://github.ugent.be/hpcugent/%(name)s'
 
 RELOAD_VSC_MODS = False
 
-VERSION = '0.17.27'
+VERSION = '0.17.28'
 
 log.info('This is (based on) vsc.install.shared_setup %s' % VERSION)
 log.info('(using setuptools version %s located at %s)' % (setuptools.__version__, setuptools.__file__))
@@ -1557,8 +1557,9 @@ class vsc_setup(object):
                 # if you specify any kind of version on a dependency, the dependency_links also needs a version or
                 # else it's ignored: https://setuptools.readthedocs.io/en/latest/setuptools.html#id14
                 for url, git_scheme in urls:
-                    new_target['dependency_links'] += [''.join([git_scheme, url, '/hpcugent/', dep_name, '.git#egg=',
-                                                                dep_name_version])]
+                    for org in ['hpcugent', 'vub-hpc']:
+                        new_target['dependency_links'] += [''.join([git_scheme, url, '/', org, '/', dep_name,
+                                                                    '.git#egg=', dep_name_version])]
 
         if VSC_RPM_PYTHON in os.environ:
             for key, pattern_replace_list in vsc_filter_rpm.items():
