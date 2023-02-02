@@ -1,6 +1,6 @@
 # -*- coding: latin-1 -*-
 #
-# Copyright 2011-2022 Ghent University
+# Copyright 2011-2023 Ghent University
 #
 # This file is part of vsc-install,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -169,7 +169,7 @@ URL_GHUGENT_HPCUGENT = 'https://github.ugent.be/hpcugent/%(name)s'
 
 RELOAD_VSC_MODS = False
 
-VERSION = '0.17.28'
+VERSION = '0.17.31'
 
 log.info('This is (based on) vsc.install.shared_setup %s' % VERSION)
 log.info('(using setuptools version %s located at %s)' % (setuptools.__version__, setuptools.__file__))
@@ -576,9 +576,8 @@ class vsc_setup(object):
 
         def _write(self, dest, code):
             """write code to dest"""
-            fh = open(dest, 'w')
-            fh.write(code)
-            fh.close()
+            with open(dest, 'w') as fih:
+                fih.write(code)
 
         def _copy_setup_py(self, base_dir):
             """
@@ -1495,6 +1494,8 @@ class vsc_setup(object):
             tests_requires.append('lazy_object_proxy < 1.7.0')
             # requirements-detector 1.0.0 no longer compatible with python 2
             tests_requires.append('requirements-detector < 1.0.0')
+            # singledispatch 4.0.0 no longer compatible with python 2
+            tests_requires.append('singledispatch < 4.0.0')
         else:
             # soft pinning of (transitive) dependencies of prospector
             # ('~=' means stick to compatible release, https://www.python.org/dev/peps/pep-0440/#compatible-release);
@@ -1520,6 +1521,9 @@ class vsc_setup(object):
                     'platformdirs < 2.4.0',
                     'typing-extensions < 4.2.0', # higher requires python 3.7
                     'lazy-object-proxy < 1.8.0', # higher requires python 3.7
+                    'jsonpickle < 3.0.0', # higher requires python 3.7
+                    'importlib-metadata < 5.0.0', # no longer compatible with python 3.7
+                    'isort < 5.11.0',
                 ])
             else:  # tested for fedora37 py3.11
                 tests_requires.extend([
@@ -1616,12 +1620,6 @@ class vsc_setup(object):
             log.info('makesetupcfg set to False, not (re)creating setup.cfg')
             return
 
-        try:
-            setup_cfg = open('setup.cfg', 'w')  # and truncate
-        except (IOError, OSError) as err:
-            print("Cannot create setup.cfg for target %s: %s" % (target['name'], err))
-            sys.exit(1)
-
         klass = _fvs('build_setup_cfg_for_bdist_rpm')
 
         txt = []
@@ -1649,8 +1647,13 @@ class vsc_setup(object):
         # add metadata
         txt += ['', '[metadata]', '', 'description-file = %s' % README, '']
 
-        setup_cfg.write("\n".join(txt+['']))
-        setup_cfg.close()
+        try:
+            with open('setup.cfg', 'w') as setup_cfg:
+                setup_cfg.write("\n".join(txt+['']))
+        except (IOError, OSError) as err:
+            print("Cannot create setup.cfg for target %s: %s" % (target['name'], err))
+            sys.exit(1)
+
 
     def prepare_rpm(self, target):
         """
